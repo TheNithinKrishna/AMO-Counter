@@ -39,6 +39,13 @@ def login_into_gmail(imap_user, imap_password):
 
 def check_ordertype(ordertype,orderfee,common_db_data,client_data,portal_name):
     try:
+        ordertype=ordertype.strip()
+        
+        if ',' in ordertype:
+            ordertype = ordertype.replace(',  ',' ').replace(', ',' ').replace(',',' ')
+            logging.info(f'order type after removing comma is : {ordertype}')
+    
+        client_ordertype = client_data['Order_type'].strip()
         exterior_ordertypes=common_db_data['exterior_ordertypes'].split(',')
         interior_ordertypes=common_db_data['interior_ordertypes'].split(',')
         donot_accept_ordertypes=client_data['donot_accept_ordertypes'].split(',')        
@@ -46,20 +53,20 @@ def check_ordertype(ordertype,orderfee,common_db_data,client_data,portal_name):
         exterior_commercial_ordertypes=common_db_data['exterior_commercial_ordertypes'].split(',')
         interior_inspection_ordertypes=common_db_data['interior_inspection_ordertypes'].split(',')
         interior_commercial_ordertypes=common_db_data['interior_commercial_ordertypes'].split(',')
-        if ((ordertype.lower() in [x.lower() for x in exterior_ordertypes]) and ('Exterior' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        if ((ordertype.lower() in [x.lower() for x in exterior_ordertypes]) and ('Exterior' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['Price_min_ext'],client_data['Zipcode'],True
-        elif ((ordertype.lower() in [x.lower() for x in exterior_inspection_ordertypes]) and ('Exterior Inspection' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        elif ((ordertype.lower() in [x.lower() for x in exterior_inspection_ordertypes]) and ('Exterior Inspection' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['min_price_insp'],client_data['Zipcode'],True
-        elif ((ordertype.lower() in [x.lower() for x in exterior_commercial_ordertypes]) and ('Exterior Commercial' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        elif ((ordertype.lower() in [x.lower() for x in exterior_commercial_ordertypes]) and ('Exterior Commercial' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['Price_min_ext_comm'],client_data['Zipcode'],True
-        elif ((ordertype.lower() in [x.lower() for x in interior_ordertypes]) and ('Interior' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        elif ((ordertype.lower() in [x.lower() for x in interior_ordertypes]) and ('Interior' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['Price_min_int'],client_data['Int_Zipcode'],True
-        elif ((ordertype.lower() in [x.lower() for x in interior_inspection_ordertypes]) and ('Interior Inspection' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        elif ((ordertype.lower() in [x.lower() for x in interior_inspection_ordertypes]) and ('Interior Inspection' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['min_price_int_insp'],client_data['Int_Zipcode'],True
-        elif ((ordertype.lower() in [x.lower() for x in interior_commercial_ordertypes]) and ('Interior Commercial' in client_data['Order_type'])) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
+        elif ((ordertype.lower() in [x.lower() for x in interior_commercial_ordertypes]) and ('Interior Commercial' in client_ordertype)) and (ordertype.lower() not in [x.lower() for x in donot_accept_ordertypes]):
             return client_data['Price_min_int_comm'],client_data['Zipcode'],True
         else:
-            return orderfee,ordertype,True
+            return orderfee,ordertype,False
     except Exception as ex:
         logging.info(ex)
         exception_mail_send(portal_name,client_data['Client_name'],ex)
@@ -67,18 +74,19 @@ def check_ordertype(ordertype,orderfee,common_db_data,client_data,portal_name):
 
 def check_decline_ordertype(ordertype,common_db_data,client_data,portal_name):
     try:
+        ordertype=ordertype.strip()
         decline_ordertypes=client_data['decline_ordertypes'].split(',')
         exterior_ordertypes=common_db_data['exterior_ordertypes'].split(',')
         interior_ordertypes=common_db_data['interior_ordertypes'].split(',')
         exterior_inspection_ordertypes=common_db_data['exterior_inspection_ordertypes'].split(',')
         interior_inspection_ordertypes=common_db_data['interior_inspection_ordertypes'].split(',')
-        if (ordertype.lower() in [x.lower() for x in exterior_ordertypes]) and ('Exterior' in [x.lower() for x in decline_ordertypes]):
+        if (ordertype.lower() in [x.lower() for x in exterior_ordertypes]) and ('exterior' in [x.lower() for x in decline_ordertypes]):
             return True
-        elif (ordertype.lower() in [x.lower() for x in exterior_inspection_ordertypes]) and ('Exterior Inspection' in [x.lower() for x in decline_ordertypes]):
+        elif (ordertype.lower() in [x.lower() for x in exterior_inspection_ordertypes]) and ('exterior inspection' in [x.lower() for x in decline_ordertypes]):
             return True
-        elif (ordertype.lower() in [x.lower() for x in interior_ordertypes]) and ('Interior' in [x.lower() for x in decline_ordertypes]):
+        elif (ordertype.lower() in [x.lower() for x in interior_ordertypes]) and ('interior' in [x.lower() for x in decline_ordertypes]):
             return True
-        elif (ordertype.lower() in [x.lower() for x in interior_inspection_ordertypes]) and ('Interior Inspection' in [x.lower() for x in decline_ordertypes]):
+        elif (ordertype.lower() in [x.lower() for x in interior_inspection_ordertypes]) and ('interior inspection' in [x.lower() for x in decline_ordertypes]):
             return True
         else:
             return False
@@ -159,10 +167,17 @@ def criteria_with_params(pricedb,zipcodedb, fee_portal, due_difference, zipcode,
                     flag=False
                     return ignored_msg,fee_portal,flag
         else:
-            ignored_msg = f"Order price Not satisfied"
-            logging.info(f"Order price Not satisfied -${fee_portal}")
-            flag=False
-            return ignored_msg,fee_portal,flag
+            if int(due_difference) > int(client_data['due_difference']):
+                logging.info("Due Date Satisfied")
+                ignored_msg = f"Order price Not satisfied"
+                logging.info(f"Order price Not satisfied -${fee_portal}")
+                flag=False
+                return ignored_msg,fee_portal,flag
+            else:
+                logging.info('Due Date Not Satisfied')
+                ignored_msg = "Due Date Not Satisfied"
+                flag=False
+                return ignored_msg,fee_portal,flag
     except Exception as ex:
         exception_mail_send(portal_name,client_data['Client_name'],ex)
         logging.info(ex)
@@ -224,7 +239,7 @@ def check_counter_accepted(client_data,address,portal):
         if data:
             counter_accepted_flag = True
             logging.info(f'Countered Order Accepted for Address: {address}')
-            cursorexec("order_updation","UPDATE","UPDATE `mainstreetaccepted` SET `MailStatus` = 'Countered Order Accepted' WHERE `ClientName` = '{}' AND `ProviderName` = '{}'".format(client_data['Client_name'],portal))    
+            cursorexec("order_updation","UPDATE","UPDATE `mainstreetaccepted` SET `MailStatus` = 'Countered Order Accepted' WHERE `ClientName` = '{}' AND `ProviderName` = '{}' and `Address` = '{}'".format(client_data['Client_name'],portal,address))    
         else:
             counter_accepted_flag = False
             logging.info(f'Not a Countered Order for Address: {address}')
@@ -235,42 +250,62 @@ def check_counter_accepted(client_data,address,portal):
 
 def velocity_check(zip_code, miles,client_name,portal):
     """This function is used to check whether reps are available in Velocity"""
-    try:
-        cnx = mysql.connector.connect(user="order", password="acceptance", host="34.70.96.52", database="order_updation",autocommit=True)
-        cursor = cnx.cursor(buffered=True, dictionary=True)
-        cursor.execute(f"""SELECT * FROM `google_geolocation_data` WHERE zipcode={zip_code} """)
-        data=cursor.fetchone()
-        if data!=None:
-            logging.info("Geo Location already available in database")
-            lat=data['latitude']
-            lng=data['longitude']
-        else:
-            session1=requests.session()
-            api_key="AIzaSyBai-oUJPePJD6jIaiI8xO36F3AytcPwGY"
-            url=f"https://maps.googleapis.com/maps/api/geocode/json?key={api_key}&components=postal_code:{zip_code}"
-            response=session1.get(url)
-            if json.loads(response.content)['status'] != 'ZERO_RESULTS':
-                lat=json.loads(response.content)['results'][0]['geometry']['location']['lat']
-                lng=json.loads(response.content)['results'][0]['geometry']['location']['lng']
-                logging.info(f'Lat: {lat}, Lan: {lng}')
-                cursor.execute(f"INSERT INTO `google_geolocation_data` (`zipcode`,`latitude`,`longitude`) VALUES ('{zip_code}','{lat}','{lng}') ")
+    max_retries = 2
+    retry_delay = 2
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            cnx = mysql.connector.connect(user="order", password="acceptance", host="34.70.96.52", database="order_updation",autocommit=True)
+            cursor = cnx.cursor(buffered=True, dictionary=True)
+            cursor.execute(f"""SELECT * FROM `google_geolocation_data` WHERE zipcode={zip_code} """)
+            data=cursor.fetchone()
+            if data!=None:
+                logging.info("Geo Location already available in database")
+                lat=data['latitude']
+                lng=data['longitude']
             else:
-                logging.info("Lat and long cound not be fetched")
-                return 0
-        cursor.close()
-        session=requests.session()
-        response=session.get('https://bpophotoflow.com/coverage_markers.php?lat={}&lng={}&radius={}'.format(lat,lng,miles))
-        phtghr_count=0
-        for child in ElementTree.fromstring(response.content).iter('marker'):
-            if child.attrib['color'] == 'blue.png':
-                phtghr_count=phtghr_count+1
-            #print(phtghr_count,zips)
-        logging.info(f"phtghr_count: {phtghr_count} , zip_code:{zip_code}")
-        return phtghr_count
-    except Exception as ex:
-        logging.info(f"Exception in velocityCheck: {ex}")
-        exception_mail_send(portal,client_name,ex)
-        return 0
+                session1=requests.session()
+                api_key="AIzaSyBai-oUJPePJD6jIaiI8xO36F3AytcPwGY"
+                url=f"https://maps.googleapis.com/maps/api/geocode/json?key={api_key}&components=postal_code:{zip_code}"
+                response=session1.get(url)
+                if json.loads(response.content)['status'] != 'ZERO_RESULTS':
+                    lat=json.loads(response.content)['results'][0]['geometry']['location']['lat']
+                    lng=json.loads(response.content)['results'][0]['geometry']['location']['lng']
+                    logging.info(f'Lat: {lat}, Lan: {lng}')
+                    cursor.execute(f"INSERT INTO `google_geolocation_data` (`zipcode`,`latitude`,`longitude`) VALUES ('{zip_code}','{lat}','{lng}') ")
+                else:
+                    logging.info("Lat and long cound not be fetched")
+                    return 0
+            cursor.close()
+            session=requests.session()
+            response=session.get('https://bpophotoflow.com/coverage_markers.php?lat={}&lng={}&radius={}'.format(lat,lng,miles))
+            phtghr_count=0
+            for child in ElementTree.fromstring(response.content).iter('marker'):
+                if child.attrib['color'] == 'blue.png':
+                    phtghr_count=phtghr_count+1
+                #print(phtghr_count,zips)
+            logging.info(f"phtghr_count: {phtghr_count} , zip_code:{zip_code}")
+            return phtghr_count
+        except Exception as ex:
+                logging.info(f"Exception in velocityCheck: {ex}")
+                attempt += 1
+                if attempt < max_retries:
+                    logging.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:    
+                    try:
+                        from sender import Mail  # Ensure sender is correctly imported
+                        mail = sender.Mail('smtp.gmail.com', "loginerrornotifier@gmail.com" , "eqkmgbkfbopdkfpw", 465, use_ssl=True,
+                                                fromaddr="loginerrornotifier@gmail.com")
+                        logging.info('Connected to email')
+                        err_message = f"""This is an automatic notification:
+                        Issue In checking velocity for {client_name}'s {portal} account"""
+                        logging.info(err_message)
+                        mail.send_message(subject=f'Velocity check Issue', to="teamsoftware@ecesistech.com", body=err_message)
+                        return 0
+                    except Exception as e:
+                        logging.error(f"Exception in sending error notification: {e}")
+                        return 0
 
 def write_to_db(client_data,time_now,duedate,provider_name,order_fee,ordertype,order_address,mail_status,portal,order_id,subjectline,order_received_time):
     """This function writes the accepted order details to mainstreetaccepted database"""
@@ -278,8 +313,20 @@ def write_to_db(client_data,time_now,duedate,provider_name,order_fee,ordertype,o
         logging.info("Updating accepted order details to DB ...")
         order_zipcode = str(order_address).split(" ")[-1]
         if '-' in order_zipcode:order_zipcode = order_zipcode.split("-")[0]
-        cursorexec("order_updation","INSERT",f"""INSERT INTO `mainstreetaccepted`(`ClientName`, `AcceptedTime`, `DueDate`, `ProviderName`, `OrderFee`, `Order Type`, `Address`, `to_ecesisMail`, `to_clientMail`, `from_mail`, `fromaddresspwd`, `MailStatus`,`order_id`,`subjectline`,`order_zipcode`,`order_received_time`)
-                        VALUES ('{client_data['Client_name']}','{time_now}','{duedate}','{provider_name}','{order_fee}','{ordertype}','{order_address}','{client_data['to_ecesisMail']}','{client_data['to_clientMail']}','{client_data['from_mail']}','{email_creds['fromaddresspwd']}','{mail_status}','{order_id}','{subjectline}','{order_zipcode}','{order_received_time}')""")
+        
+        if client_data['from_mail'] == 'notificationalert@bpoacceptor.com' or client_data['from_mail'] == 'bangrealty@bpoacceptor.com' or client_data['from_mail'] == 'keystoneholding@bpoacceptor.com' or client_data['from_mail'] == 'notifications@bpoacceptor.com' or client_data['from_mail'] == 'info@bpoacceptor.com':
+            
+            from_mail_id = client_data['from_mail']
+            logging.info(f"from mail : {from_mail_id}")
+            cursorexec("order_updation","INSERT",f"""INSERT INTO `mainstreetaccepted`(`ClientName`, `AcceptedTime`, `DueDate`, `ProviderName`, `OrderFee`, `Order Type`, `Address`, `to_ecesisMail`, `to_clientMail`, `from_mail`, `fromaddresspwd`, `MailStatus`,`order_id`,`subjectline`,`order_zipcode`,`order_received_time`,`client_type`)
+                        VALUES ('{client_data['Client_name']}','{time_now}','{duedate}','{provider_name}','{order_fee}','{ordertype}','{order_address}','{client_data['to_ecesisMail']}','{client_data['to_clientMail']}','{client_data['from_mail']}','{email_creds[from_mail_id]}','{mail_status}','{order_id}','{subjectline}','{order_zipcode}','{order_received_time}','{client_data['client_type']}')""")
+        
+        else:
+            logging.info(f"from mail from client data: {client_data['from_mail']}")
+            from_mail_id = 'info@bpoacceptor.com'
+            cursorexec("order_updation","INSERT",f"""INSERT INTO `mainstreetaccepted`(`ClientName`, `AcceptedTime`, `DueDate`, `ProviderName`, `OrderFee`, `Order Type`, `Address`, `to_ecesisMail`, `to_clientMail`, `from_mail`, `fromaddresspwd`, `MailStatus`,`order_id`,`subjectline`,`order_zipcode`,`order_received_time`,`client_type`)
+                        VALUES ('{client_data['Client_name']}','{time_now}','{duedate}','{provider_name}','{order_fee}','{ordertype}','{order_address}','{client_data['to_ecesisMail']}','{client_data['to_clientMail']}','{from_mail_id}','{email_creds[from_mail_id]}','{mail_status}','{order_id}','{subjectline}','{order_zipcode}','{order_received_time}','{client_data['client_type']}')""")
+
     except Exception as ex:
         logging.info('Exception arrises : %s',ex)
         exception_mail_send(portal,client_data['Client_name'],ex)
@@ -297,7 +344,17 @@ def send_accepted_mail(due_date, order_fee,ordertype,order_address,order_id,from
     try:
         mail_status='Order Accepted'
         logging.info('Connected to email')
-        mail = sender.Mail('smtp.gmail.com', fromaddress , email_creds['fromaddresspwd'], 465, use_ssl=True,fromaddr=fromaddress)
+        
+        if fromaddress == 'notificationalert@bpoacceptor.com' or fromaddress == 'bangrealty@bpoacceptor.com' or fromaddress == 'keystoneholding@bpoacceptor.com' or fromaddress == 'notifications@bpoacceptor.com' or fromaddress == 'info@bpoacceptor.com':
+            logging.info(f"from mail : {fromaddress}")
+            mail = sender.Mail('smtp.gmail.com', fromaddress , email_creds[fromaddress], 465, use_ssl=True,fromaddr=fromaddress)
+       
+        else:
+            logging.info(f"from mail : {fromaddress}")
+            fromaddress = 'info@bpoacceptor.com'
+            mail = sender.Mail('smtp.gmail.com', fromaddress , email_creds[fromaddress], 465, use_ssl=True,fromaddr=fromaddress)
+            
+    
         success_message = successmessage(client_name,str(datetime.datetime.now()), due_date ,portal, order_fee, ordertype,order_address,order_id)
         client_mail_send(mail,to_client_mail,to_ecesis_mail,subject,success_message)
         
@@ -307,7 +364,6 @@ def send_accepted_mail(due_date, order_fee,ordertype,order_address,order_id,from
         logging.info('Exception arrises while sending mail')
         logging.info('Mail Not Send')
     return mail_status
-
 
 def successmessage(client_name, acceptedtime, due_date, providename, orderfee, ordertype, address,order_id):
     """This Function returns the order accepted message template"""
@@ -340,6 +396,23 @@ def successmessageconditionalyaccept(client_name, acceptedtime, due_date, provid
     Requested Fee: {requested_fee}
     """
     return SUCCESS_MESSAGE
+
+def successmessageconditionalyaccept2(client_name, acceptedtime, due_date, providename, orderfee, ordertype, address,order_id,requested_due,msg):
+    """This Function returns the order conditionally accepted message template"""
+    SUCCESS_MESSAGE = f"""This is an automatic notification that one of your orders was {msg} using our service:
+
+    Client Name: {client_name}
+    Accepted Time: {acceptedtime}
+    Due Date: {due_date}
+    Provider Name: {providename}
+    Order Fee: {orderfee}
+    Order Type: {ordertype}
+    Address: {address}
+    OrderID: {order_id}
+    Requested Due: {requested_due}
+    """
+    return SUCCESS_MESSAGE
+
 def ignored_message(msg,address,ignored_msg,client_name,ordertype,fee,zipcode):
     """This Function contains the ignored order message"""
     ignored_message = f"""This is an automatic notification:
@@ -354,14 +427,14 @@ def ignored_message(msg,address,ignored_msg,client_name,ordertype,fee,zipcode):
 def client_mail_send(mail,to_client_mail,to_ecesis_mail,subject,success_message):
     """This Fucntion is used send mail notification to client"""
     if to_client_mail and to_ecesis_mail:
-        mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
-        # mail.send_message(subject=subject, to=(to_client_mail,to_ecesis_mail), body=success_message, bcc=(email_creds['swbc_inter'],email_creds['exception_ecesis']))
+        # mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
+        mail.send_message(subject=subject, to=(to_client_mail,to_ecesis_mail), body=success_message, bcc=(email_creds['exception_ecesis']))
     elif to_ecesis_mail:
-        mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
-        # mail.send_message(subject=subject, to=(to_ecesis_mail), body=success_message, bcc=(email_creds['swbc_inter'],email_creds['exception_ecesis']))
+        # mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
+        mail.send_message(subject=subject, to=(to_ecesis_mail), body=success_message, bcc=(email_creds['exception_ecesis']))
     elif to_client_mail:
-        mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
-        # mail.send_message(subject=subject, to=(to_client_mail), body=success_message, bcc=(email_creds['swbc_inter'],email_creds['exception_ecesis']))
+        # mail.send_message(subject=subject, to=('teamsoftware@ecesistech.com'),body=success_message)
+        mail.send_message(subject=subject, to=(to_client_mail), body=success_message, bcc=(email_creds['exception_ecesis']))
     logging.info('Mail sent')
 
 
@@ -409,6 +482,9 @@ def logger_mail(portal_name):
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         logging.getLogger().addHandler(console_handler)
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("PIL.PngImagePlugin").setLevel(logging.WARNING)
+        logging.getLogger().propagate=False
     except Exception as ex:
         print(ex)
           
@@ -474,26 +550,51 @@ def ignored_order(address,ordertype,ignored_msg,fee_portal,clientData,portal,zip
     try:
         logging.info('Connected to MySQL database...')
         data=cursorexec("order_updation","SELECT","SELECT * FROM `Ignored_orders` WHERE `client_Name` = '{}' and `Address` = '{}' ORDER BY `timestamp` DESC limit 1".format(clientData['Client_name'],address))
+        data1=cursorexec("order_updation","SELECT","SELECT * FROM `mainstreetaccepted` WHERE `ClientName` = '{}' and `Address` = '{}' and 'MailStatus' not like 'Countered' ORDER BY `AcceptedTime` DESC limit 1".format(clientData['Client_name'],address))
         def ignored_mail_send():
             process_completed_time = datetime.datetime.now()
-            cursorexec("order_updation","INSERT","INSERT INTO `Ignored_orders`(`client_Name`, `Address`, `Portal`,`ignored_reason`,`ordertype`,`orderfee`,`order_zipcode`,`order_received_time`,`process_completed_time`) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}')".format(clientData['Client_name'],address,portal,ignored_msg,ordertype,fee_portal,zipcode,str(order_received_time),str(process_completed_time)))
-            mail = sender.Mail('smtp.gmail.com', email_creds['notifier_email'] , email_creds['notifier_password'], 465, use_ssl=True,fromaddr=email_creds['notifier_email'])
-            logging.info('Connected to email')
-            ignormsg=ignored_message("Unable to accept",address,ignored_msg,clientData['Client_name'],ordertype,fee_portal,zipcode)
-            logging.info(ignormsg)
-            if 'not satisfied' in ignored_msg.lower():
-                if clientData['Client_name'] in common_db_data['ignored_order_mail_send_clients']:
+            cursorexec("order_updation","INSERT","INSERT INTO `Ignored_orders`(`client_Name`, `Address`, `Portal`,`ignored_reason`,`ordertype`,`orderfee`,`order_zipcode`,`order_received_time`,`process_completed_time`,`client_type`) VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}','{}')".format(clientData['Client_name'],address,portal,ignored_msg,ordertype,fee_portal,zipcode,str(order_received_time),str(process_completed_time),clientData['client_type']))
+            if 'Bang' in clientData['Client_name']:
+                mail = sender.Mail('smtp.gmail.com', email_creds['ignored_bang_mail'] , email_creds['ignored_bang_mail_password'], 465, use_ssl=True,fromaddr=email_creds['ignored_bang_mail'])
+                logging.info('Connected to email')
+                ignormsg=ignored_message("Unable to accept",address,ignored_msg,clientData['Client_name'],ordertype,fee_portal,zipcode)
+                logging.info(ignormsg)
+                if 'not satisfied' in ignored_msg.lower():
                     client_mail_send(mail,clientData['to_clientMail'],clientData['to_ecesisMail'],subject,ignormsg)
+                    logging.info('Ignored Order Mail sent')
                 else:
-                    mail.send_message(subject, to=email_creds['exception_email'], body=ignormsg)
-                logging.info('Ignored Order Mail sent')
-            else:
-                logging.info('No Need to Mail sent')
+                    logging.info('No Need to Mail sent')
+            else:    
+                mail = sender.Mail('smtp.gmail.com', email_creds['ignored_mail'] , email_creds['ignored_psswd'], 465, use_ssl=True,fromaddr=email_creds['ignored_mail'])
+                logging.info('Connected to email')
+                ignormsg=ignored_message("Unable to accept",address,ignored_msg,clientData['Client_name'],ordertype,fee_portal,zipcode)
+                logging.info(ignormsg)
+                if 'not satisfied' in ignored_msg.lower():
+                    if clientData['Client_name'] in common_db_data['ignored_order_mail_send_clients']:
+                        client_mail_send(mail,clientData['to_clientMail'],clientData['to_ecesisMail'],subject,ignormsg)
+                    else:
+                        mail.send_message(subject, to=email_creds['exception_email'], body=ignormsg)
+                    logging.info('Ignored Order Mail sent')
+                else:
+                    logging.info('No Need to Mail sent')
 
-        if data:
+        if data1:
+            acceptedtime = data1['AcceptedTime']
+            time_gap = (today-acceptedtime).days
+            if int(time_gap)>0:
+                if data:
+                    ignored_time = data['timestamp']
+                    time_gap1 = (today-ignored_time).days
+                    if int(time_gap1)>0:
+                        ignored_mail_send()
+                    else:
+                        logging.info("Mail already send for %s",address)    
+            else:
+                logging.info("Mail already send for %s",address)
+        elif data:
             ignored_time = data['timestamp']
             time_gap = (today-ignored_time).days
-            if int(time_gap)>2:
+            if int(time_gap)>0:
                 ignored_mail_send()
             else:
                 logging.info("Mail already send for %s",address)
@@ -505,7 +606,7 @@ def ignored_order(address,ordertype,ignored_msg,fee_portal,clientData,portal,zip
         logging.info(ex)
 
 def inactive_inDB(client_name,portal):
-    """This Function is used to Make Client as inactive in database"""
+    """This Function is used to Sent the inactive in database email """
     try:
         mail = sender.Mail('smtp.gmail.com', email_creds['internal_notifier_email'] , email_creds['internal_notifier_password'], 465, use_ssl=True,
                                fromaddr=email_creds['internal_notifier_email'])
@@ -544,15 +645,15 @@ def checkip(client_ip):
 def send_login_error_mail(portal_name,client_data):
     """This function is to send login error emails"""
     try:
-        mail = sender.Mail('smtp.gmail.com', email_creds['notifier_email'] , email_creds['notifier_password'], 465, use_ssl=True,
-                                   fromaddr=email_creds['notifier_email'])
+        mail = sender.Mail('smtp.gmail.com', email_creds['login_error_email'] , email_creds['login_error_password'], 465, use_ssl=True,
+                                   fromaddr=email_creds['login_error_email'])
         logging.info('Connected to email')
         err_message = f"""This is an automatic notification:
 Unable to login to {client_data['Client_name']}'s {portal_name} account"""
         logging.info(err_message)
         if client_data['client_type']=="processing":
-            mail.send_message(subject=f'{portal_name} Login Error!', to=email_creds['internal_email_notification'], body=err_message)
-            # mail.send_message(subject=f'{portal_name} Login Error!', to=('loginerror@ecesistech.com','communicationecesis@gmail.com','tvmcommunicationteam@gmail.com','coordinatorecesis@gmail.com','ecesisregnteam@gmail.com','ecesisregn@gmail.com'), body=err_message)
+            # mail.send_message(subject=f'{portal_name} Login Error!', to=email_creds['internal_email_notification'], body=err_message)
+            mail.send_message(subject=f'{portal_name} Login Error!', to=('loginerror.notify@ecesistech.com','teamsoftware@ecesistech.com','communicationecesis@gmail.com','tvmcommunicationteam@gmail.com','coordinatorecesis@gmail.com','ecesisregnteam@gmail.com','ecesisregn@gmail.com','amar.dev@ecesistech.com','akhil@ecesistech.com','jayakumar@ecesistech.com','sruthi.ss@ecesistech.com','vishnu.m@ecesistech.com'), body=err_message)
         else:
             mail.send_message(subject=f'{portal_name} Login Error!', to=email_creds['internal_email_notification'], body=err_message)
         logging.info('Login Error Mail sent')
@@ -560,29 +661,67 @@ Unable to login to {client_data['Client_name']}'s {portal_name} account"""
         exception_mail_send(portal_name,client_data['Client_name'],ex)
         logging.info(ex)
 
+def inspectionTypeCheck(ordertype, common_db_data)->bool:
+    try:
+        exterior_inspection_ordertypes=common_db_data['exterior_inspection_ordertypes'].split(',')
+        interior_inspection_ordertypes=common_db_data['interior_inspection_ordertypes'].split(',')
+        if ((ordertype.lower() in  [x.lower() for x in exterior_inspection_ordertypes]) or (ordertype.lower() in [x.lower() for x in interior_inspection_ordertypes])):
+            return True
+        return False
+    except Exception as ex:
+        logging.info(ex)
 def zipcode_check(zipcode,ordertype,orderfee,client_data,portal_name):
     common_db_data=cursorexec("order_updation",'SELECT',"""SELECT * FROM `common_data_acceptance` """)
     fee_portal,zipcodedb,typecheck_flag=check_ordertype(ordertype,orderfee,common_db_data,client_data,portal_name)
     zipcodedb={zipcode: True for zipcode in zipcodedb.split(',')}
+    inspectionflag = inspectionTypeCheck(ordertype, common_db_data)
     if typecheck_flag:
-        if zipcodedb.get(zipcode,None) is not None :          #Convert to dictionary
-            return True 
+        if "Bang" in client_data['Client_name'] and inspectionflag == True:
+            logging.info('Client is Bang and It is an inspection order')
+            if zipcode not in common_db_data['bangnotavailablezip']:                
+                reps = velocity_check(zipcode, 15, client_data['Client_name'], portal_name)
+                if reps >= 2:
+                    return True
+                else:
+                    return False
+            else:
+                return False
         else:
-            if client_data['Client_name'] in common_db_data['velocityClients']:
-                reps = velocity_check(zipcode,client_data['miles'],client_data['Client_name'],portal_name)
-                if common_db_data['bangnotavailablezip'] is not None:
-                # if client_data['NotavailableZip'] is not None:
-                    if zipcode not in common_db_data['bangnotavailablezip']:
-                    # if zipcode not in client_data['NotavailableZip']:S
-                        if reps >= 2:
-                            return True
+            if zipcodedb.get(zipcode,None) is not None :          #Convert to dictionary
+                return True 
+            else:
+                if client_data['Client_name'] in common_db_data['velocityClients']:
+                    reps = velocity_check(zipcode,client_data['miles'],client_data['Client_name'],portal_name)
+                    if common_db_data['bangnotavailablezip'] is not None:
+                    # if client_data['NotavailableZip'] is not None:
+                        if zipcode not in common_db_data['bangnotavailablezip']:
+                        # if zipcode not in client_data['NotavailableZip']:S
+                            if reps >= 2:
+                                return True
+                            else:
+                                return False
                         else:
                             return False
                     else:
                         return False
                 else:
                     return False
-            else:
-                return False
     else:
         return False
+    
+def successmessageconditionalyaccept3(client_name, acceptedtime, due_date, providename, orderfee, ordertype, address,order_id,requested_due,msg,requested_fee):
+    """This Function returns the order conditionally accepted message template"""
+    SUCCESS_MESSAGE = f"""This is an automatic notification that one of your orders was {msg} using our service:
+
+    Client Name: {client_name}
+    Accepted Time: {acceptedtime}
+    Due Date: {due_date}
+    Provider Name: {providename}
+    Order Fee: {orderfee}
+    Order Type: {ordertype}
+    Address: {address}
+    OrderID: {order_id}
+    Requested Due: {requested_due}
+    Requested Fee: {requested_fee}
+    """
+    return SUCCESS_MESSAGE
