@@ -7,7 +7,7 @@ import ctypes
 from random import randint
 from helper.amo import amo
 from stdlib.creds import email_cred
-from stdlib.utility import successmessageconditionalyaccept,client_mail_send,zipcode_check,inactive_inDB,capacity_mail_send,send_login_error_mail,ignored_order,write_to_db,send_accepted_mail,cursorexec,exception_mail_send,logger_portal
+from stdlib.utility import check_counter_accepted,successmessageconditionalyaccept,client_mail_send,zipcode_check,inactive_inDB,capacity_mail_send,send_login_error_mail,ignored_order,write_to_db,send_accepted_mail,cursorexec,exception_mail_send,logger_portal
 import sys
 
 email_creds=email_cred()
@@ -73,8 +73,9 @@ def main():
                                 subject=f'{portal_name} order Accepted!'
                                 order_details=accept['to_accept']
                                 mail_status=send_accepted_mail(accept['due_date'], accept['fee_portal'],order_details['VendorProduct'], accept['Address'],order_details['OrderID'],client_data['from_mail'],client_data['to_clientMail'],client_data['to_ecesisMail'],client_data['Client_name'],subject,portal_name) #function to sending accepted orders to client
-                                time.sleep(5)
-                                write_to_db(client_data,str(datetime.datetime.now()),accept['due_date'],portal_name,accept['fee_portal'],order_details['VendorProduct'],accept["Address"],mail_status,portal_name,order_details['OrderID'],subject,accept['order_received_time']) #function to insert accepted orders to database
+                                counter_accepted_flag = check_counter_accepted(client_data,accept['Address'],portal_name,accept['due_date'])
+                                if not counter_accepted_flag:
+                                    write_to_db(client_data,str(datetime.datetime.now()),accept['due_date'],portal_name,accept['fee_portal'],order_details['VendorProduct'],accept["Address"],mail_status,portal_name,order_details['OrderID'],subject,accept['order_received_time']) #function to insert accepted orders to database
                             
                             for avail_order in countered:
                                 try:                                
